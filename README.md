@@ -56,7 +56,7 @@ There are several substring edits available, loosely inspired by [Ruby substring
 
 The `end` index may be negative, in which case the index is counted from the end of the string, where `-1` is equivalent to the length of the string (`[start]` and `[start,-1]` produce the same result), `-2` one shorter, etc.
 
-Invalid start and end indexes and lengths are adjusted to produce a meaningful result, or the empty string if necessary (start beyond the end of the string, end before start, etc.). These scenarios typically throw exceptions in Java's `String.substring1` method.
+Invalid start and end indexes and lengths are adjusted to produce a meaningful result, or the empty string if necessary (start beyond the end of the string, end before start, etc.). These scenarios typically throw exceptions in Java's `String.substring` method.
 
 Any of `start`, `end`, `length`, `pattern`, or `group` may be taken from a parameter instead of the template by using the `{}` or `{number}` syntax.
 
@@ -127,7 +127,7 @@ Date and time parameters can be formatted with [Java SimpleDateFormat](https://d
 * `date(format)[zone]` &mdash; formats the date with the specified format in the specified time zone.
 * `date()[zone]` &mdash; formats the date with the default ISO8601 format in the specified time zone.
 
-Note that to specify a `[zone]` you must supply a `(format)` -- use `()` to get the default format.
+Note that to specify a `[zone]` you must supply a `(format)` &mdash; use `()` to get the default format.
 
 Either `format` or `zone` may be taken from a parameter instead of the template by using the `{}` or `{number}` syntax.
 
@@ -139,3 +139,19 @@ Date d = new Date(1588697522346L);
 /* result: "2020-05-05T16:52:02.346Z" */ Expander.expand("{date()[GMT]}", d));
 ```
 
+## Conditional Expansion
+
+In some cases an expanded parameter should be surrounded with some static text, but only when the parameter has a value. For this situation, the Expander supports Conditional Expansion blocks. A Conditional Expansion block consists of sections of static text and one or more parameters: the static text is rendered only if at least one of the parameters expands to a non-empty value.
+
+A Conditional Expansion block begins with `{?}` and ends at:
+
+* the Conditional Expansion block terminator `{.}`,
+* the next Condition Expansion block indicator `{?}`,
+* the end of the string
+
+```java
+/* result: "?a=b&c=d&e=f" */ Expander.expand("?a=b{?}&c={}{?}&e={}",              "d", "f"));
+/* result: "?a=b&e=f"     */ Expander.expand("?a=b{?}&c={}{?}&e={}",              "",  "f"));
+/* result: "?a=b"         */ Expander.expand("?a=b{?}&c={}{?}&e={[2]}the end",    "",  "f"));
+/* result: "?a=bthe end"  */ Expander.expand("?a=b{?}&c={}{?}&e={[2]}{.}the end", "",  "f"));
+```

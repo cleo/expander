@@ -64,6 +64,9 @@ public class TestExpander {
     assertEquals("urge", Expander.expand("{[4,-2]}", "hamburger"));
     assertEquals("urge", Expander.expand("{[4:4]}", "hamburger"));
     assertEquals("urger", Expander.expand("{[4]}", "hamburger"));
+    assertEquals("rger", Expander.expand("{[5]}", "hamburger"));
+    assertEquals("r", Expander.expand("{[8]}", "hamburger"));
+    assertEquals("", Expander.expand("{[9]}", "hamburger"));
     assertEquals("miles", Expander.expand("{[1,6]}", "smiles"));
     assertEquals("miles", Expander.expand("{[1,-1]}", "smiles"));
     assertEquals("miles", Expander.expand("{[1:5]}", "smiles"));
@@ -131,6 +134,14 @@ public class TestExpander {
     assertEquals(Iso.format(now), Expander.expand("{date()}", now));
     assertEquals(Iso.format(now), Expander.expand("{date}", now));
     assertEquals(IsoZ.format(now), Expander.expand("{date()[GMT]}", now));
+  }
+
+  @Test
+  public void testConditional() {
+    assertEquals("?a=b&c=d&e=f", Expander.expand("?a=b{?}&c={}{?}&e={}", "d", "f"));
+    assertEquals("?a=b&e=f", Expander.expand("?a=b{?}&c={}{?}&e={}", "", "f"));
+    assertEquals("?a=b", Expander.expand("?a=b{?}&c={}{?}&e={[2]}the end", "", "f"));
+    assertEquals("?a=bthe end", Expander.expand("?a=b{?}&c={}{?}&e={[2]}{.}the end", "", "f"));
   }
 
 }

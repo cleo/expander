@@ -109,11 +109,20 @@ public class Expander {
      */
     private static final String OPTIONS = "options";
     /**
+     * The capture group name for the conditional indicator "{?}"
+     */
+    private static final String CONDITIONAL = "conditional";
+    /**
+     * The capture group name for the conditional close indicator "{.}"
+     */
+    private static final String CLOSE = "close";
+    /**
      * A precompiled {@link Pattern} matching a parameter replacement token,
      * consisting of an optional escape prefix (\ or \\), and braces {},
      * optionally containing options.
      */
-    private static final Pattern TOKEN = Pattern.compile("(?i)(?<" + ESCAPE + ">\\\\{0,2})\\{(?<" + OPTIONS + ">(?:" + OPTION + ",?)*)?\\}");
+    private static final Pattern TOKEN = Pattern.compile("(?i)(?:(?<" + ESCAPE + ">\\\\{0,2})\\{(?<" + OPTIONS + ">(?:" + OPTION + ",?)*)?\\}|"+
+            "(?<"+CONDITIONAL+">\\{\\?\\})|(?<"+CLOSE+">\\{\\.\\}))");
 
     /**
      * The option types (see {@link #OPTION}).
@@ -179,7 +188,7 @@ public class Expander {
                 return o.toString().toUpperCase();
             case INDEX_TO:
                 String s = o.toString();
-                int from = Math.min(p1.resolveInt(args, arg), s.length() - 1);
+                int from = Math.min(p1.resolveInt(args, arg), s.length());
                 int to = p2.resolveInt(args, arg);
                 if (to < 0) {
                     to = Math.max(0, s.length() + 1 + to);
@@ -318,8 +327,30 @@ public class Expander {
         StringBuffer s = new StringBuffer();
         int[] arg = { 0 };
         String replacement;
+        int coffset = -1;
+        boolean condition = false;
         while (m.find()) {
-            if (m.group(ESCAPE).length() == 1) {
+            if (m.group(CONDITIONAL) != null) {
+                m.appendReplacement(s, "");
+                // handle it like a CLOSE if a condition is already open
+                if (coffset >= 0 && !condition) {
+                    s.setLength(coffset);
+                }
+                // mark the new offset
+                coffset = s.length();
+                condition = false;
+                replacement = null;
+            } else if (m.group(CLOSE) != null) {
+                m.appendReplacement(s, "");
+                // if nothing expanded truncate back to the offset
+                if (coffset >= 0 && !condition) {
+                    s.setLength(coffset);
+                }
+                // reset to unconditional
+                coffset = -1;
+                condition = false;
+                replacement = null;
+            } else if (m.group(ESCAPE).length() == 1) {
                 replacement = "{" + m.group(OPTIONS) + "}";
             } else {
                 Object working;
@@ -392,9 +423,16 @@ public class Expander {
                     replacement = "\\\\" + replacement;
                 }
             }
-            m.appendReplacement(s, replacement);
+            if (replacement != null) {
+                m.appendReplacement(s, replacement);
+                condition = condition || !replacement.isEmpty();
+            }
         }
         m.appendTail(s);
+        // if a condition is open at the end, check it out
+        if (coffset >= 0 && !condition) {
+            s.setLength(coffset);
+        }
         return s.toString();
     }
 
