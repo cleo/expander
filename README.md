@@ -119,7 +119,7 @@ The most general option is to use a [Java Formatter](https://docs.oracle.com/jav
 
 This can be used for both String (for example, for left or right justification in a fixed width) or non-String (formatting Doubles) types.
 
-Date and time parameters can be formatted with [Java SimpleDateFormat](https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html) formats, optionally with a timezone adjustment (e.g. to GMT). The options are:
+Date and time parameters can be formatted with [Java DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html) formats, optionally with a timezone adjustment (e.g. to GMT). The options are:
 
 * `date` &mdash; formats the date with the default ISO8601 format (`yyyy-MM-dd'T'HH:mm:ss.SSSX`).
 * `date()` &mdash; also uses the default format.

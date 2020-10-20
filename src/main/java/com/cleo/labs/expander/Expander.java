@@ -1,12 +1,14 @@
 package com.cleo.labs.expander;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Formatter;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,7 +16,7 @@ public class Expander {
 
     /**
      * For date formatting, use {@code date(format)[timezone]} where {@code format} is a
-     * {@link SimpleDateFormat}. Since date formats may contain arbitrary text,
+     * {@link DateTimeFormatter}. Since date formats may contain arbitrary text,
      * any closing parenthesis {@code )} in the format must be escaped with a
      * prefix backslash, which will be removed before the format is applied.
      * The {@code [timezone]} is optional and defaults to the local time zone.
@@ -84,7 +86,7 @@ public class Expander {
      * {@link #SUBSTR_OPTION})</li>
      * <li>{@code %format} to use a {@link Formatter} format (on parameter of an
      * appropriate type)</li>
-     * <li>{@code date(format)} to use a {@link SimpleDateFormat} format (on a
+     * <li>{@code date(format)} to use a {@link DateTimeFormatter} format (on a
      * {@link Date} parameter)</li>
      * <li>{@code number} to specify a specific parameter (starting from 1)
      * instead of just using the "next one"</li>
@@ -232,11 +234,17 @@ public class Expander {
                 try {
                     format = p1.resolveString(args, arg);
                     String zone = p2.resolveString(args, arg);
-                    DateFormat df = new SimpleDateFormat(format);
-                    if (zone != null && !zone.isEmpty()) {
-                        df.setTimeZone(TimeZone.getTimeZone(zone));
+                    DateTimeFormatter df = DateTimeFormatter.ofPattern(format);
+                    ZoneId tz = zone==null || zone.isEmpty() ? ZoneId.systemDefault() : ZoneId.of(zone);
+                    TemporalAccessor t;
+                    if (o instanceof Date) {
+                        t = ZonedDateTime.ofInstant(((Date)o).toInstant(), tz);
+                    } else if (o instanceof Long || o instanceof Integer) {
+                        t = ZonedDateTime.ofInstant(Instant.ofEpochMilli((long)o), tz);
+                    } else {
+                        t = (TemporalAccessor)o;
                     }
-                    return df.format((Date) o);
+                    return df.format(t);
                 } catch (ClassCastException e) {
                     return "";
                 }
@@ -404,7 +412,7 @@ public class Expander {
                 }
                 // select the base string
                 if (index == INDEX_NOW) {
-                    working = new Date();
+                    working = ZonedDateTime.now();
                 } else {
                     if (index == INDEX_NEXT) {
                         index = arg[0] + 1;

@@ -9,8 +9,6 @@ import java.util.TimeZone;
 
 import org.junit.Test;
 
-import com.cleo.labs.expander.Expander;
-
 public class TestExpander {
 
   @Test
@@ -124,6 +122,7 @@ public class TestExpander {
     Date d = new Date(1588697522346L);
     assertEquals("-Tuesday(Tue)-1588697522346", Expander.expand("-{date(EEEE'('E'\\)')}-{%d}", d, d.getTime()));
     assertEquals("2020-05-05T16:52:02.346Z", Expander.expand("{date()[GMT]}", d));
+    assertEquals("Q2'20", Expander.expand("{date(QQQ''yy)}", d));
     Date now = new Date();
     String format = "YYYY.MM.dd 'at' HH:mm";
     String nowFormatted = new SimpleDateFormat(format).format(now);
