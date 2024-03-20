@@ -49,6 +49,12 @@ public class TestExpander {
     assertEquals("[foo]", Expander.expand("[{lower}]", "FOO"));
     assertEquals("[foo]", Expander.expand("[{trim,lower}]", "    FOO    "));
     assertEquals("[foo]", Expander.expand("[{TRIMTOLOWER}]", "    FOO    "));
+    assertEquals("[+foo+]", Expander.expand("[{urlencode}]", " foo "));
+    assertEquals("[ foo ]", Expander.expand("[{urldecode}]", "+foo+"));
+    assertEquals("[foo]", Expander.expand("[{urldecode}]", "foo"));
+    assertEquals("[Zm9vMTIzNA==]", Expander.expand("[{b64encode}]", "foo1234"));
+    assertEquals("[foo1234]", Expander.expand("[{b64decode}]", "Zm9vMTIzNA=="));
+    assertEquals("[cats and dogs]", Expander.expand("[{b64decode}]", "cats and dogs"));
   }
 
   @Test

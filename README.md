@@ -38,6 +38,10 @@ The replacement token `{}` can contain not only a parameter number, but also a s
 * `trim` trims leading and trailing whitespace.
 * `upper` or `toupper` converts to upper case.
 * `lower` or `tolower` converts to lower case.
+* `urldecode` URL decodes.
+* `urlencode` URL encodes.
+* `base64decode` or `b64decode` base-64 decodes, or returns the argument unchanged if it's not valid base-64.
+* `base64encode` or `b64ecode` base64-encodes.
 
 ```java
 /* result: "[foo]" */ Expander.expand("[{trim}]", "    foo    "));

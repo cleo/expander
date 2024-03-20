@@ -1,11 +1,16 @@
 package com.cleo.labs.expander;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Formatter;
 import java.util.List;
@@ -95,7 +100,8 @@ public class Expander {
      * </ul>
      * Options are case-insensitive.
      */
-    private static final String OPTION = "(?:\\d+|trim|(?:to)?(?:lower|upper)|" + SUBSTR_OPTION + "|" + FORMAT_OPTION + "|" + DATE_OPTION + ")";
+    private static final String OPTION = "(?:\\d+|trim|(?:to)?(?:lower|upper)|(?:url|b64|base64)(?:en|de)code|"
+        + SUBSTR_OPTION + "|" + FORMAT_OPTION + "|" + DATE_OPTION + ")";
     /**
      * A precompiled {@link Pattern} to parse the option string (in between
      * braces {}).
@@ -130,7 +136,7 @@ public class Expander {
      * The option types (see {@link #OPTION}).
      */
     private enum OpType {
-        TRIM, LOWER, UPPER, INDEX_TO, INDEX_LENGTH, MATCH, FORMAT, DATE
+        TRIM, LOWER, UPPER, URLENCODE, URLDECODE, BASE64ENCODE, BASE64DECODE, INDEX_TO, INDEX_LENGTH, MATCH, FORMAT, DATE
     };
 
     /**
@@ -158,6 +164,10 @@ public class Expander {
 
         public static Op upper() {
             return new Op(OpType.UPPER, null, null);
+        }
+
+        public static Op of(OpType type) {
+            return new Op(type, null, null);
         }
 
         public static Op index_to(String from, String to) {
@@ -188,6 +198,26 @@ public class Expander {
                 return o.toString().toLowerCase();
             case UPPER:
                 return o.toString().toUpperCase();
+            case URLENCODE:
+                try {
+                    return URLEncoder.encode(o.toString(), StandardCharsets.UTF_8.name());
+                } catch (UnsupportedEncodingException impossible) {
+                    return o.toString();
+                }
+            case URLDECODE:
+                try {
+                    return URLDecoder.decode(o.toString(), StandardCharsets.UTF_8.name());
+                } catch (UnsupportedEncodingException impossible) {
+                    return o.toString();
+                }
+            case BASE64ENCODE:
+                return Base64.getEncoder().encodeToString(o.toString().getBytes());
+            case BASE64DECODE:
+                try {
+                    return new String(Base64.getDecoder().decode(o.toString()));
+                } catch (IllegalArgumentException e) {
+                    return o.toString();
+                }
             case INDEX_TO:
                 String s = o.toString();
                 int from = Math.min(p1.resolveInt(args, arg), s.length());
@@ -376,6 +406,14 @@ public class Expander {
                             ops.add(Op.lower());
                         } else if (option.equalsIgnoreCase("upper") || option.equalsIgnoreCase("toupper")) {
                             ops.add(Op.upper());
+                        } else if (option.equalsIgnoreCase("urlencode")) {
+                            ops.add(Op.of(OpType.URLENCODE));
+                        } else if (option.equalsIgnoreCase("urldecode")) {
+                            ops.add(Op.of(OpType.URLDECODE));
+                        } else if (option.equalsIgnoreCase("b64encode") || option.equalsIgnoreCase("base64encode")) {
+                            ops.add(Op.of(OpType.BASE64ENCODE));
+                        } else if (option.equalsIgnoreCase("b64decode") || option.equalsIgnoreCase("base64decode")) {
+                            ops.add(Op.of(OpType.BASE64DECODE));
                         } else if (option.matches("\\d+")) {
                             index = Integer.valueOf(option);
                         } else if (option.startsWith("[")) {
