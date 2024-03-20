@@ -41,14 +41,21 @@ The replacement token `{}` can contain not only a parameter number, but also a s
 * `urldecode` URL decodes.
 * `urlencode` URL encodes.
 * `base64decode` or `b64decode` base-64 decodes, or returns the argument unchanged if it's not valid base-64.
-* `base64encode` or `b64ecode` base64-encodes.
+* `base64encode` or `b64ecode` base-64 encodes.
 
-```java
-/* result: "[foo]" */ Expander.expand("[{trim}]", "    foo    "));
-/* result: "[foo]" */ Expander.expand("[{lower}]", "FOO"));
-/* result: "[foo]" */ Expander.expand("[{trim,lower}]", "    FOO    "));
-/* result: "[foo]" */ Expander.expand("[{TRIMTOLOWER}]", "    FOO    "));
-```
+Result            | Expression
+------------------|-----------
+`[foo]`           | `Expander.expand("[{trim}]", "    foo    "));`
+`[foo]`           | `Expander.expand("[{lower}]", "FOO"));`
+`[foo]`           | `Expander.expand("[{trim,lower}]", "    FOO    "));`
+`[foo]`           | `Expander.expand("[{TRIMTOLOWER}]", "    FOO    "));`
+`[+foo+]`         | `Expander.expand("[{urlencode}]", " foo "));`
+`[ foo ]`         | `Expander.expand("[{urldecode}]", "+foo+"));`
+`[foo]`           | `Expander.expand("[{urldecode}]", "foo"));`
+`[Zm9vMTIzNA==]`  | `Expander.expand("[{b64encode}]", "foo1234"));`
+`[foo1234]`       | `Expander.expand("[{b64decode}]", "Zm9vMTIzNA=="));`
+`[cats and dogs]` | `Expander.expand("[{b64decode}]", "cats and dogs"));`
+
 
 There are several substring edits available, loosely inspired by [Ruby substrings](https://ruby-doc.org/core-2.4.0/String.html#method-i-5B-5D):
 
@@ -66,47 +73,56 @@ Any of `start`, `end`, `length`, `pattern`, or `group` may be taken from a param
 
 Index-based examples:
 
-```java
-/* result: "urge" */ Expander.expand("{[4,8]}", "hamburger"));
-/* result: "urge" */ Expander.expand("{[4,-2]}", "hamburger"));
-/* result: "urge" */ Expander.expand("{[4:4]}", "hamburger"));
-/* result: "urger" */ Expander.expand("{[4]}", "hamburger"));
-/* result: "miles" */ Expander.expand("{[1,6]}", "smiles"));
-/* result: "miles" */ Expander.expand("{[1,-1]}", "smiles"));
-/* result: "miles" */ Expander.expand("{[1:5]}", "smiles"));
-/* result: "miles" */ Expander.expand("{[1]}", "smiles"));
-/* result: "urge" */ Expander.expand("{[{},{}]}", "hamburger", 4, 8));
-/* result: "urge" */ Expander.expand("{[{},{}]}", "hamburger", "4", -2));
-/* result: "urge" */ Expander.expand("{[{2}:{2}]}", "hamburger", 4));
-/* result: "urger" */ Expander.expand("{[{}]}", "hamburger", 4.0));
-/* result: "miles" */ Expander.expand("{[1,{}]}", "smiles", 6));
-/* result: "miles" */ Expander.expand("{[{},-1]}", "smiles", 1));
-/* result: "miles" */ Expander.expand("{[1:{3}]}", "smiles", 1, 5));
-/* result: "miles" */ Expander.expand("{[{4}]}", "smiles", null, null, 1));
-/* result: "urger" */ Expander.expand("{[4,10]}", "hamburger"));
-/* result: "" */ Expander.expand("{[4,4]}", "hamburger"));
-/* result: "" */ Expander.expand("{[4,2]}", "hamburger"));
-/* result: "" */ Expander.expand("{[4:-2]}", "hamburger"));
-/* result: "" */ Expander.expand("{[4:0]}", "hamburger"));
-```
+Result         | Expression
+---------------|-----------
+`urge`         | `Expander.expand("{[4,8]}", "hamburger"));`
+`urge`         | `Expander.expand("{[4,-2]}", "hamburger"));`
+`urge`         | `Expander.expand("{[4:4]}", "hamburger"));`
+`urger`        | `Expander.expand("{[4]}", "hamburger"));`
+`miles`        | `Expander.expand("{[1,6]}", "smiles"));`
+`miles`        | `Expander.expand("{[1,-1]}", "smiles"));`
+`miles`        | `Expander.expand("{[1:5]}", "smiles"));`
+`miles`        | `Expander.expand("{[1]}", "smiles"));`
+`urge`         | `Expander.expand("{[{},{}]}", "hamburger", 4, 8));`
+`urge`         | `Expander.expand("{[{},{}]}", "hamburger", "4", -2));`
+`urge`         | `Expander.expand("{[{2}:{2}]}", "hamburger", 4));`
+`urger`        | `Expander.expand("{[{}]}", "hamburger", 4.0));`
+`miles`        | `Expander.expand("{[1,{}]}", "smiles", 6));`
+`miles`        | `Expander.expand("{[{},-1]}", "smiles", 1));`
+`miles`        | `Expander.expand("{[1:{3}]}", "smiles", 1, 5));`
+`miles`        | `Expander.expand("{[{4}]}", "smiles", null, null, 1));`
+`urger`        | `Expander.expand("{[4,10]}", "hamburger"));`
+_empty string_ | `Expander.expand("{[4,4]}", "hamburger"));`
+_empty string_ | `Expander.expand("{[4,2]}", "hamburger"));`
+_empty string_ | `Expander.expand("{[4:-2]}", "hamburger"));`
+_empty string_ | `Expander.expand("{[4:0]}", "hamburger"));`
 
 Pattern-based examples:
 
+In these examples let:
+
 ```java
-/* result: "ell" */ Expander.expand("{[/[aeiou](.)\\1/]}", "hello there"));
-/* result: "ell" */ Expander.expand("{[/[aeiou](.)\\1/0]}", "hello there"));
-/* result: "l" */ Expander.expand("{[/[aeiou](.)\\1/1]}", "hello there"));
-/* result: "" */ Expander.expand("{[/[aeiou](.)\\1/2]}", "hello there"));
-/* result: "l" */ Expander.expand("{[/[aeiou](?<dot>.)\\1/dot]}", "hello there"));
-/* result: "" */ Expander.expand("{[/[aeiou](?<dot>.)\\1/dit]}", "hello there"));
 String FN_EXT = "^(?<fn>.*?)(?:\\.(?<ext>[^\\.]*))?$";
-/* result: "foo.bar" */ Expander.expand("{[/"+FN_EXT+"/{}]}", "foo.bar.txt", "fn"));
-/* result: "txt" */ Expander.expand("{[/"+FN_EXT+"/{}]}", "foo.bar.txt", "ext"));
-/* result: "foo" */ Expander.expand("{[/"+FN_EXT+"/{}]}", "foo.", "fn"));
-/* result: "" */ Expander.expand("{[/"+FN_EXT+"/{}]}", "foo.", "ext"));
-/* result: "foo" */ Expander.expand("{[/{3}/{}]}", "foo", "fn", FN_EXT));
-/* result: "" */ Expander.expand("{[/{}/{}]}", "foo", FN_EXT, "ext"));
 ```
+
+which is a regular expression that separates a _filename_ with an _extension_, separated by `.`, into
+component parts in named capture groups `fn` and `ext`.
+
+Result         | Expression
+---------------|-----------
+`ell`          | `Expander.expand("{[/[aeiou](.)\\1/]}", "hello there"));`
+`ell`          | `Expander.expand("{[/[aeiou](.)\\1/0]}", "hello there"));`
+`l`            | `Expander.expand("{[/[aeiou](.)\\1/1]}", "hello there"));`
+_empty string_ | `Expander.expand("{[/[aeiou](.)\\1/2]}", "hello there"));`
+`l`            | `Expander.expand("{[/[aeiou](?<dot>.)\\1/dot]}", "hello there"));`
+_empty string_ | `Expander.expand("{[/[aeiou](?<dot>.)\\1/dit]}", "hello there"));`
+`foo.bar`      | `Expander.expand("{[/"+FN_EXT+"/{}]}", "foo.bar.txt", "fn"));`
+`txt`          | `Expander.expand("{[/"+FN_EXT+"/{}]}", "foo.bar.txt", "ext"));`
+`foo`          | `Expander.expand("{[/"+FN_EXT+"/{}]}", "foo.", "fn"));`
+_empty string_ | `Expander.expand("{[/"+FN_EXT+"/{}]}", "foo.", "ext"));`
+`foo`          | `Expander.expand("{[/{3}/{}]}", "foo", "fn", FN_EXT));`
+_empty string_ | `Expander.expand("{[/{}/{}]}", "foo", FN_EXT, "ext"));`
+
 
 ## Formats
 
@@ -114,12 +130,12 @@ The Expander supports parameters that are not Strings. By default, they will be 
 
 The most general option is to use a [Java Formatter](https://docs.oracle.com/javase/8/docs/api/java/util/Formatter.html) string, which starts with `%` and ends with a single letter conversion character.
 
-```java
-/* result: "abc   " */ Expander.expand("{%-6s}", "abc"));
-/* result: "   abc" */ Expander.expand("{1,%6s}", "abc"));
-/* result: " 3.142e+00" */ Expander.expand("{%10.3e}", Math.PI));
-/* result: "3.142E+00" */ Expander.expand("{1,%10.3e,trim,upper}", Math.PI));
-```
+Result         | Expression
+---------------|-----------
+`abc   `       | `Expander.expand("{%-6s}", "abc"));`
+`   abc`       | `Expander.expand("{1,%6s}", "abc"));`
+` 3.142e+00`   | `Expander.expand("{%10.3e}", Math.PI));`
+`3.142E+00`    | `Expander.expand("{1,%10.3e,trim,upper}", Math.PI));`
 
 This can be used for both String (for example, for left or right justification in a fixed width) or non-String (formatting Doubles) types.
 
@@ -137,11 +153,16 @@ Either `format` or `zone` may be taken from a parameter instead of the template 
 
 Use `now` instead of `date` to use the current date/time instead of using a parameter.
 
+In these examples let:
+
 ```java
 Date d = new Date(1588697522346L);
-/* result: "-Tuesday(Tue)-1588697522346" */ Expander.expand("-{date(EEEE'('E'\\)')}-{%d}", d, d.getTime()));
-/* result: "2020-05-05T16:52:02.346Z" */ Expander.expand("{date()[GMT]}", d));
 ```
+
+Result                        | Expression
+------------------------------|-----------
+`-Tuesday(Tue)-1588697522346` | `Expander.expand("-{date(EEEE'('E'\\)')}-{%d}", d, d.getTime()));`
+`2020-05-05T16:52:02.346Z`    | `Expander.expand("{date()[GMT]}", d));`
 
 ## Conditional Expansion
 
@@ -153,9 +174,9 @@ A Conditional Expansion block begins with `{?}` and ends at:
 * the next Condition Expansion block indicator `{?}`,
 * the end of the string
 
-```java
-/* result: "?a=b&c=d&e=f" */ Expander.expand("?a=b{?}&c={}{?}&e={}",              "d", "f"));
-/* result: "?a=b&e=f"     */ Expander.expand("?a=b{?}&c={}{?}&e={}",              "",  "f"));
-/* result: "?a=b"         */ Expander.expand("?a=b{?}&c={}{?}&e={[2]}the end",    "",  "f"));
-/* result: "?a=bthe end"  */ Expander.expand("?a=b{?}&c={}{?}&e={[2]}{.}the end", "",  "f"));
-```
+Result         | Expression
+---------------|-----------
+`?a=b&c=d&e=f` | `Expander.expand("?a=b{?}&c={}{?}&e={}",              "d", "f"));`
+`?a=b&e=f`     | `Expander.expand("?a=b{?}&c={}{?}&e={}",              "",  "f"));`
+`?a=b`         | `Expander.expand("?a=b{?}&c={}{?}&e={[2]}the end",    "",  "f"));`
+`?a=bthe end`  | `Expander.expand("?a=b{?}&c={}{?}&e={[2]}{.}the end", "",  "f"));`
